@@ -18,8 +18,8 @@ steps:
 # Gather new or updated files for deployment.
 # Use PowerShell to replace the Linux-specific `cp` commands with equivalent Windows commands.
 - powershell: |
-    # Check if the repository has at least one commit
-    if (git rev-parse --verify HEAD) {
+    # Check if the repository has any commits
+    if (git rev-parse --verify HEAD 2>$null) {
         # Repository has commits; diff from the last commit
         git diff --name-only --diff-filter=AMR HEAD^ HEAD | ForEach-Object { 
             $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
@@ -28,7 +28,8 @@ steps:
             Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
         }
     } else {
-        # No commits; copy all files
+        # No commits; copy all files from the repository
+        Write-Host "No previous commits found. Copying all files."
         Get-ChildItem -Recurse "$(Build.Repository.LocalPath)" | ForEach-Object {
             $sourcePath = $_.FullName
             $destPath = $sourcePath -replace [regex]::Escape("$(Build.Repository.LocalPath)"), "$(Build.BinariesDirectory)"
@@ -43,6 +44,7 @@ steps:
     Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo" -Force
     Copy-Item -Path "$(Build.Repository.LocalPath)\*.*" -Destination "$(Build.BinariesDirectory)" -Force
   displayName: 'Get Changes'
+
 
 # Create the deployment artifact and publish it.
 - task: ArchiveFiles@2
