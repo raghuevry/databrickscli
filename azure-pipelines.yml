@@ -23,7 +23,8 @@ steps:
     if ($headExists) {
         # Repository has previous commits, perform a diff between the current HEAD and the previous commit
         Write-Host "Existing commit history found. Performing git diff."
-        git diff --name-only --diff-filter=AMR HEAD~1 HEAD | ForEach-Object { 
+        #git diff --name-only --relative --diff-filter AMR HEAD~1 HEAD
+        git diff --name-only --relative --diff-filter AMR HEAD~1 HEAD | ForEach-Object { 
             $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
             $destPath = Join-Path "$(Build.BinariesDirectory)" $_
             # Create directories if necessary and copy the changed files
