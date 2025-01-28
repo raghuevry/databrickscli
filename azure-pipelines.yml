@@ -18,22 +18,22 @@ steps:
 # Gather new or updated files for deployment.
 # Use PowerShell to replace the Linux-specific `cp` commands with equivalent Windows commands.
 - powershell: |
-    # Check if HEAD exists to avoid issues on the first commit
-    $headExists = git rev-parse --verify HEAD 2>$null
-    if ($headExists) {
-        # Repository has previous commits, perform a diff between the current HEAD and the previous commit
-        Write-Host "Existing commit history found. Performing git diff."
-        #git diff --name-only --relative --diff-filter AMR HEAD~1 HEAD
-        git diff --name-only --relative --diff-filter AMR HEAD~1 HEAD | ForEach-Object { 
-            $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
-            $destPath = Join-Path "$(Build.BinariesDirectory)" $_
-            # Create directories if necessary and copy the changed files
+    # Check if there is more than one commit in the repository
+    $commitCount = git rev-list --count HEAD
+    if ($commitCount -gt 1) {
+        # If there are more than 1 commit, perform the git diff
+        Write-Host "Repository has multiple commits. Performing git diff."
+        $changedFiles = git diff --name-only --diff-filter=AMR HEAD~1 HEAD
+        foreach ($file in $changedFiles) {
+            $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $file
+            $destPath = Join-Path "$(Build.BinariesDirectory)" $file
+            # Create parent directories if they don't exist and copy files
             New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
             Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
         }
     } else {
-        # No commits exist, treat it as an initial commit
-        Write-Host "No previous commits found. Copying all files."
+        # If there is only one commit, copy all files as no previous commit exists
+        Write-Host "Only one commit found or no commits. Copying all files."
         Get-ChildItem -Recurse "$(Build.Repository.LocalPath)" | ForEach-Object {
             $sourcePath = $_.FullName
             $destPath = $sourcePath -replace [regex]::Escape("$(Build.Repository.LocalPath)"), "$(Build.BinariesDirectory)"
@@ -44,11 +44,16 @@ steps:
     }
 
     # Create additional directories and copy necessary files for libraries and other required files
-    New-Item -ItemType Directory -Path "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Force | Out-Null
-    Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\dabdemo\*.*" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Recurse -Force
+    $dabDemoPath = Join-Path "$(Build.BinariesDirectory)" "Libraries\python\dabdemo\dabdemo"
+    New-Item -ItemType Directory -Path $dabDemoPath -Force | Out-Null
+    Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\dabdemo\*.*" -Destination $dabDemoPath -Recurse -Force
+
+    # Copy the setup.py file
     Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo" -Force
+
+    # Copy all files from the repository root to the binaries directory
     Copy-Item -Path "$(Build.Repository.LocalPath)\*.*" -Destination "$(Build.BinariesDirectory)" -Force
-  displayName: 'Get Changes'
+  displayName: 'Get Changes and Copy Files'
 
 
 # Create the deployment artifact and publish it.
