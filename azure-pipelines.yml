@@ -6,7 +6,7 @@ trigger:
 # Specify the operating system for the Azure virtual machine running the build pipeline.
 # This uses a Windows-based agent.
 pool:
-  vmImage: default
+  vmImage: Default
 
 # Download the files from the designated branch in the remote Git repository
 # onto the build agent.
