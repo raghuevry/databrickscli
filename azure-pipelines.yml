@@ -18,12 +18,26 @@ steps:
 # Gather new or updated files for deployment.
 # Use PowerShell to replace the Linux-specific `cp` commands with equivalent Windows commands.
 - powershell: |
-    git diff --name-only --diff-filter=AMR HEAD^1 HEAD | ForEach-Object { 
-      $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
-      $destPath = Join-Path "$(Build.BinariesDirectory)" $_
-      New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
-      Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+    # Check if the repository has at least one commit
+    if (git rev-parse --verify HEAD) {
+        # Repository has commits; diff from the last commit
+        git diff --name-only --diff-filter=AMR HEAD^ HEAD | ForEach-Object { 
+            $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
+            $destPath = Join-Path "$(Build.BinariesDirectory)" $_
+            New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
+            Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+        }
+    } else {
+        # No commits; copy all files
+        Get-ChildItem -Recurse "$(Build.Repository.LocalPath)" | ForEach-Object {
+            $sourcePath = $_.FullName
+            $destPath = $sourcePath -replace [regex]::Escape("$(Build.Repository.LocalPath)"), "$(Build.BinariesDirectory)"
+            New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
+            Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+        }
     }
+
+    # Create additional directories and copy necessary files
     New-Item -ItemType Directory -Path "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Force | Out-Null
     Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\dabdemo\*.*" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Recurse -Force
     Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo" -Force
