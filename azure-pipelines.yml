@@ -21,25 +21,28 @@ steps:
     # Check if HEAD exists to avoid issues on the first commit
     $headExists = git rev-parse --verify HEAD 2>$null
     if ($headExists) {
-        # If HEAD exists, perform a diff between the current HEAD and the previous commit
-        git diff --name-only --diff-filter=AMR HEAD^ HEAD | ForEach-Object { 
+        # Repository has previous commits, perform a diff between the current HEAD and the previous commit
+        Write-Host "Existing commit history found. Performing git diff."
+        git diff --name-only --diff-filter=AMR HEAD~1 HEAD | ForEach-Object { 
             $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
             $destPath = Join-Path "$(Build.BinariesDirectory)" $_
+            # Create directories if necessary and copy the changed files
             New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
             Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
         }
     } else {
-        # If HEAD does not exist, it's a fresh repository or first commit, so copy all files
+        # No commits exist, treat it as an initial commit
         Write-Host "No previous commits found. Copying all files."
         Get-ChildItem -Recurse "$(Build.Repository.LocalPath)" | ForEach-Object {
             $sourcePath = $_.FullName
             $destPath = $sourcePath -replace [regex]::Escape("$(Build.Repository.LocalPath)"), "$(Build.BinariesDirectory)"
+            # Create directories if necessary and copy the files
             New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
             Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
         }
     }
 
-    # Create additional directories and copy necessary files
+    # Create additional directories and copy necessary files for libraries and other required files
     New-Item -ItemType Directory -Path "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Force | Out-Null
     Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\dabdemo\*.*" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Recurse -Force
     Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo" -Force
