@@ -18,9 +18,10 @@ steps:
 # Gather new or updated files for deployment.
 # Use PowerShell to replace the Linux-specific `cp` commands with equivalent Windows commands.
 - powershell: |
-    # Check if the repository has any commits
-    if (git rev-parse --verify HEAD 2>$null) {
-        # Repository has commits; diff from the last commit
+    # Check if HEAD exists to avoid issues on the first commit
+    $headExists = git rev-parse --verify HEAD 2>$null
+    if ($headExists) {
+        # If HEAD exists, perform a diff between the current HEAD and the previous commit
         git diff --name-only --diff-filter=AMR HEAD^ HEAD | ForEach-Object { 
             $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
             $destPath = Join-Path "$(Build.BinariesDirectory)" $_
@@ -28,7 +29,7 @@ steps:
             Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
         }
     } else {
-        # No commits; copy all files from the repository
+        # If HEAD does not exist, it's a fresh repository or first commit, so copy all files
         Write-Host "No previous commits found. Copying all files."
         Get-ChildItem -Recurse "$(Build.Repository.LocalPath)" | ForEach-Object {
             $sourcePath = $_.FullName
