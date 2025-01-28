@@ -3,13 +3,10 @@
 trigger:
 - release
 
-# Specify the operating system for the agent that runs on the Azure virtual
-# machine for the build pipeline (known as the build agent). The virtual
-# machine image in this example uses the Ubuntu 22.04 virtual machine
-# image in the Azure Pipeline agent pool. See
-# https://learn.microsoft.com/azure/devops/pipelines/agents/hosted#software
+# Specify the operating system for the Azure virtual machine running the build pipeline.
+# This uses a Windows-based agent.
 pool:
-  vmImage: ubuntu-22.04
+  vmImage: windows-latest
 
 # Download the files from the designated branch in the remote Git repository
 # onto the build agent.
@@ -18,25 +15,22 @@ steps:
   persistCredentials: true
   clean: true
 
-# Generate the deployment artifact. To do this, the build agent gathers
-# all the new or updated code to be given to the release pipeline,
-# including the sample Python code, the Python notebooks,
-# the Python wheel library component files, and the related Databricks asset
-# bundle settings.
-# Use git diff to flag files that were added in the most recent Git merge.
-# Then add the files to be used by the release pipeline.
-# The implementation in your pipeline will likely be different.
-# The objective here is to add all files intended for the current release.
-- script: |
-    git diff --name-only --diff-filter=AMR HEAD^1 HEAD | xargs -I '{}' cp --parents -r '{}' $(Build.BinariesDirectory)
-    mkdir -p $(Build.BinariesDirectory)/Libraries/python/dabdemo/dabdemo
-    cp $(Build.Repository.LocalPath)/Libraries/python/dabdemo/dabdemo/*.* $(Build.BinariesDirectory)/Libraries/python/dabdemo/dabdemo
-    cp $(Build.Repository.LocalPath)/Libraries/python/dabdemo/setup.py $(Build.BinariesDirectory)/Libraries/python/dabdemo
-    cp $(Build.Repository.LocalPath)/*.* $(Build.BinariesDirectory)
+# Gather new or updated files for deployment.
+# Use PowerShell to replace the Linux-specific `cp` commands with equivalent Windows commands.
+- powershell: |
+    git diff --name-only --diff-filter=AMR HEAD^1 HEAD | ForEach-Object { 
+      $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
+      $destPath = Join-Path "$(Build.BinariesDirectory)" $_
+      New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
+      Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Force | Out-Null
+    Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\dabdemo\*.*" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Recurse -Force
+    Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo" -Force
+    Copy-Item -Path "$(Build.Repository.LocalPath)\*.*" -Destination "$(Build.BinariesDirectory)" -Force
   displayName: 'Get Changes'
 
-# Create the deployment artifact and then publish it to the
-# artifact repository.
+# Create the deployment artifact and publish it.
 - task: ArchiveFiles@2
   inputs:
     rootFolderOrFile: '$(Build.BinariesDirectory)'
