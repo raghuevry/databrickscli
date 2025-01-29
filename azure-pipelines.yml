@@ -28,8 +28,8 @@ steps:
             $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $file
             $destPath = Join-Path "$(Build.BinariesDirectory)" $file
             # Create parent directories if they don't exist and copy files
-            New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
-            Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+            #New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
+            #Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
         }
     } else {
         # If there is only one commit, copy all files as no previous commit exists
@@ -38,8 +38,8 @@ steps:
             $sourcePath = $_.FullName
             $destPath = $sourcePath -replace [regex]::Escape("$(Build.Repository.LocalPath)"), "$(Build.BinariesDirectory)"
             # Create directories if necessary and copy the files
-            New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
-            Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+            #New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
+            #Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
         }
     }
 
