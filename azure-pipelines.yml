@@ -44,12 +44,12 @@ steps:
     }
 
     # Create additional directories and copy necessary files for libraries and other required files
-    $dabDemoPath = Join-Path "$(Build.BinariesDirectory)" "Libraries\python\dabdemo\dabdemo"
+    $dabDemoPath = Join-Path "$(Build.BinariesDirectory)" "libraries\python\dabdemo\dabdemo"
     New-Item -ItemType Directory -Path $dabDemoPath -Force | Out-Null
-    Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\dabdemo\*.*" -Destination $dabDemoPath -Recurse -Force
+    Copy-Item -Path "$(Build.Repository.LocalPath)\libraries\python\dabdemo\dabdemo\*.*" -Destination $dabDemoPath -Recurse -Force
 
     # Copy the setup.py file
-    Copy-Item -Path "$(Build.Repository.LocalPath)\Libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\Libraries\python\dabdemo" -Force
+    Copy-Item -Path "$(Build.Repository.LocalPath)\libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\libraries\python\dabdemo" -Force
 
     # Copy all files from the repository root to the binaries directory
     Copy-Item -Path "$(Build.Repository.LocalPath)\*.*" -Destination "$(Build.BinariesDirectory)" -Force
