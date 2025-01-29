@@ -55,7 +55,7 @@ steps:
 
     Copy-Item -Path "$(Build.Repository.LocalPath)\libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\libraries\python\dabdemo" -Force
 
-    displayName: 'Get Changes and Copy Files'
+  displayName: 'Get Changes and Copy Files'
 
 
 # Create the deployment artifact and publish it.
