@@ -18,16 +18,33 @@ steps:
 # Gather new or updated files for deployment.
 # Use PowerShell to replace the Linux-specific `cp` commands with equivalent Windows commands.
 - powershell: |
-    git diff --name-only --diff-filter=AMR HEAD^1 HEAD | ForEach-Object { 
-      $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $_
-      $destPath = Join-Path "$(Build.BinariesDirectory)" $_
-      New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
-      Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+    $commitCount = git rev-list --count HEAD
+    if ($commitCount -gt 1) {
+        # If there are more than 1 commit, perform the git diff
+        Write-Host "Repository has multiple commits. Performing git diff."
+        $changedFiles = git diff --name-only --diff-filter=AMR HEAD~1 HEAD
+        foreach ($file in $changedFiles) {
+            $sourcePath = Join-Path "$(Build.Repository.LocalPath)" $file
+            $destPath = Join-Path "$(Build.BinariesDirectory)" $file
+            # Create parent directories if they don't exist and copy files
+            New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
+            Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+        }
+    } else {
+        # If there is only one commit, copy all files as no previous commit exists
+        Write-Host "Only one commit found or no commits. Copying all files."
+        Get-ChildItem -Recurse "$(Build.Repository.LocalPath)" | ForEach-Object {
+            $sourcePath = $_.FullName
+            $destPath = $sourcePath -replace [regex]::Escape("$(Build.Repository.LocalPath)"), "$(Build.BinariesDirectory)"
+            # Create directories if necessary and copy the files
+            New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
+            Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+        }
     }
-    New-Item -ItemType Directory -Path "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Force | Out-Null
-    Copy-Item -Path "$(Build.Repository.LocalPath)\libraries\python\dabdemo\dabdemo\*.*" -Destination "$(Build.BinariesDirectory)\libraries\python\dabdemo\dabdemo" -Recurse -Force
-    Copy-Item -Path "$(Build.Repository.LocalPath)\libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\libraries\python\dabdemo" -Force
-    Copy-Item -Path "$(Build.Repository.LocalPath)\*.*" -Destination "$(Build.BinariesDirectory)" -Force
+    #New-Item -ItemType Directory -Path "$(Build.BinariesDirectory)\Libraries\python\dabdemo\dabdemo" -Force | Out-Null
+    #Copy-Item -Path "$(Build.Repository.LocalPath)\libraries\python\dabdemo\dabdemo\*.*" -Destination "$(Build.BinariesDirectory)\libraries\python\dabdemo\dabdemo" -Recurse -Force
+    #Copy-Item -Path "$(Build.Repository.LocalPath)\libraries\python\dabdemo\setup.py" -Destination "$(Build.BinariesDirectory)\libraries\python\dabdemo" -Force
+    #Copy-Item -Path "$(Build.Repository.LocalPath)\*.*" -Destination "$(Build.BinariesDirectory)" -Force
   displayName: 'Get Changes and Copy Files'
 
 
